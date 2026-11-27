@@ -1,89 +1,82 @@
-# Comparative Analysis of Machine Learning and Deep Learning Techniques for Rainfall Prediction ([Report Link](https://drive.google.com/file/d/1DkIMeXenqMF87nxPRC7wWX6qzVpodgqG/view?usp=sharing))
+# Next-Day Rain Prediction for Mumbai: Classical ML vs a Neural Network
 
-## 📜 Project Description
-This project presents a comprehensive comparative analysis of **Machine Learning (ML)** and **Deep Learning (DL)** techniques for rainfall prediction, focusing on **Mumbai, India**. The study evaluates classical ML models such as Logistic Regression, Decision Tree, Random Forest, and Support Vector Machines (SVM), alongside a Deep Learning-based neural network model (Multilayer Perceptron - MLP).
+Compares Logistic Regression, Decision Tree, Random Forest, SVM and an MLP on a binary
+task: will it rain tomorrow in Mumbai, given today's weather observations?
+[Project report](https://drive.google.com/file/d/1DkIMeXenqMF87nxPRC7wWX6qzVpodgqG/view?usp=sharing)
 
-The findings demonstrate that the **Random Forest algorithm** achieved the highest accuracy (AUC: 0.9279), while the neural network model exhibited competitive performance. This project aims to improve rainfall forecasting systems for applications like agriculture, urban planning, and disaster preparedness.
+## Task and data
 
----
+- Hourly weather observations are aggregated to daily features: 9 am and 3 pm values for
+  each measured variable, plus differences between them.
+- `RainToday` is derived from the day's recorded weather phrases, and the target
+  `RainTomorrow` is `RainToday` shifted by one day.
+- The input file `cleaned_data.csv` is **not included in this repository**, so the notebook
+  cannot be re-run from a fresh clone. Its original source is not documented here.
+- Features are standardized with a scaler fit on the training split only.
 
-## 🚀 Features
-- Implementation of various ML algorithms:
-  - Logistic Regression
-  - Decision Tree
-  - Random Forest
-  - Support Vector Machine (SVM)
-- Deep Learning model using Multilayer Perceptron (MLP).
-- Comprehensive evaluation using metrics like Accuracy, Precision, Recall, F1-Score, and AUC-ROC.
-- Data preprocessing steps including feature engineering and correlation analysis.
-- Visualizations: Correlation matrix, ROC curves, confusion matrices.
+## Evaluation setup
 
----
+Days are sorted by date and split 70 / 15 / 15 into train, validation and test. The split is
+done **separately within each class** (rainy and dry days each split by date) so that all
+three sets keep the same rain rate. This keeps class balance but means the sets are not
+strictly forward in time: a rainy day and a dry day from the same period can land in
+different sets. Treat the numbers as optimistic compared with true forward-in-time testing.
 
-## 📊 Results Summary
-| Algorithm            | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
-|----------------------|----------|-----------|--------|----------|---------|
-| Logistic Regression  | 91%      | 90%       | 73%    | 77%      | 0.9041  |
-| SVM                  | 89%      | 89%       | 76%    | 77%      | 0.8926  |
-| Decision Tree        | 88%      | 88%       | 76%    | 76%      | 0.8733  |
-| Random Forest        | **93%**  | **93%**   | **78%**| **83%**  | **0.9279** |
-| Neural Network (MLP) | 90%      | 90%       | 79%    | 80%      | 0.9085  |
+Models were compared on the validation set (1,241 days); the best by validation AUC was then
+scored once on the test set (1,460 days).
 
-### Key Takeaways:
-- **Random Forest** performed the best overall.
-- The **Neural Network model** was competitive but did not outperform Random Forest.
-- Traditional ML models like Logistic Regression also achieved strong baseline results.
+## Results
 
----
+Validation set, rain class (the positive class, 175 of 1,241 days):
 
-## 📚 Dataset
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Logistic Regression | 0.907 | 0.78 | 0.48 | 0.59 | 0.904 |
+| Decision Tree | 0.883 | 0.59 | 0.58 | 0.58 | 0.873 |
+| **Random Forest** | **0.930** | **0.89** | 0.58 | **0.70** | **0.928** |
+| SVM | 0.890 | 0.62 | 0.57 | 0.60 | 0.893 |
+| Neural network (MLP) | 0.904 | 0.67 | **0.64** | 0.65 | 0.909 |
 
-### Source:
-The dataset contains historical weather observations from Mumbai, including:
-- Temperature
-- Humidity
-- Pressure
-- Wind Speed
-- Precipitation
+Held-out **test** set for the selected model (Random Forest, 206 rain days of 1,460):
 
-### Preprocessing Steps:
-1. Handling missing values using mean/mode imputation.
-2. Feature engineering:
-   - Extracted date/time components.
-   - Created new features like daily average temperature, humidity, etc.
-3. Defined target variables:
-   - `RainToday` (binary variable based on current weather conditions).
-   - `RainTomorrow` (lagged target variable for prediction).
+| Accuracy | Precision (rain) | Recall (rain) | F1 (rain) | ROC-AUC |
+| ---: | ---: | ---: | ---: | ---: |
+| 0.884 | 0.63 | 0.41 | 0.50 | 0.915 |
 
-For more details on the dataset and preprocessing steps, refer to the `reports/` folder.
+### How to read this
 
----
+- About 14% of days are rainy, so accuracy alone is flattering: always predicting "no rain"
+  would already score about 86%. Look at rain-class recall and F1.
+- Random Forest ranks days best (highest AUC), but it misses most rainy days at the default
+  threshold (test recall 0.41). The MLP has the best validation recall (0.64).
+- Validation metrics are higher than test metrics, as expected after picking the best model on
+  validation. The test numbers are the ones to quote.
+- One split and one seed: there are no confidence intervals, and differences of a few points
+  between models are not established.
 
-## 📈 Evaluation Metrics
+## Run
 
-We evaluated model performance using the following metrics:
-1. **Accuracy**: Overall correctness of predictions.
-2. **Precision**: Correctly predicted rain days out of all predicted rain days.
-3. **Recall (Sensitivity)**: Correctly predicted rain days out of actual rain days.
-4. **F1-Score**: Harmonic mean of Precision and Recall.
-5. **ROC-AUC**: Area under the ROC curve.
+```bash
+git clone https://github.com/sachin2967/Mumbai-Rainfall-Prediction-MLvsDL.git
+cd Mumbai-Rainfall-Prediction-MLvsDL
+python -m venv .venv && source .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+# add cleaned_data.csv next to the notebook (not included), then:
+jupyter notebook final_stat_ml_v2_0.ipynb
+```
 
-For more details on these metrics, refer to Section `3.3 Evaluation Metrics` in the report.
+## Ideas for improvement
 
----
+1. Use a strictly forward-in-time split and report a rolling-origin evaluation.
+2. Tune the decision threshold for rain-class recall or F-score instead of using the default.
+3. Add sequence models (LSTM / CNN-LSTM) and compare against a "persistence" baseline.
+4. Extend to rainfall-intensity classes.
 
-## 🌟 Future Work
+## References
 
-Potential improvements include:
-1. Using advanced DL architectures like LSTM or CNN-LSTM for capturing temporal dependencies.
-2. Extending predictions to rainfall intensity categories instead of binary classification.
-3. Incorporating spatial data for geographically weighted predictions.
+1. [Predicting rainfall using ML/DL, Scientific Reports](https://www.nature.com/articles/s41598-024-77687-x)
+2. [Hybrid CNN-LSTM models for weather prediction](https://iwaponline.com/ws/article/22/5/4902/88212)
 
----
+## License
 
-## 🔗 References
-
-Key references include:
-1. [Scientific Reports: Predicting Rainfall Using ML/DL](https://www.nature.com/articles/s41598-024-77687-x)
-2. [Hybrid CNN-LSTM Models for Weather Prediction](https://iwaponline.com/ws/article/22/5/4902/88212)
-
+MIT
